@@ -1,0 +1,9 @@
+services:
+  bot:
+    build: .
+    environment:
+      - BOT_TOKEN=value
+      - BOT_CLIENT_ID=value
+      - BOT_GUILD_ID=value
+    volumes:
+      - ./data:/app/db.sqlite

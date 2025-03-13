@@ -1,0 +1,87 @@
+/*
+ * mute.js
+ * 
+ * This file is part of the devroom-test project, licensed under The Cavern OSL (Version 1.0).
+ * 
+ * Copyright (c) 2025 TheCavernStudios. All rights reserved.
+ * 
+ * License Grant:
+ * - Subject to the terms of The Cavern Studios OSL, you are granted a worldwide, royalty-free,
+ *   non-exclusive, non-transferable license to use, modify, and privately utilize this file,
+ *   including for commercial purposes, under the conditions outlined in the license.
+ * 
+ * Conditions:
+ * - Any modifications made to this file must be disclosed and documented.
+ * - This license and all copyright notices must be retained in all copies or substantial portions.
+ * - Derivative works must be licensed under the same terms as The Cavern OSL.
+ * 
+ * Restrictions:
+ * - This file may not be shared, distributed, sold, leased, sublicensed, or transferred.
+ * - The source code may not be obfuscated or resold in any form.
+ * 
+ * Limitations:
+ * - This file and its source code must remain with the Licensee only and may not be shared with third parties.
+ * - The Licensee assumes all risk associated with the use or modification of this file.
+ * 
+ * For the full license text, refer to the LICENSE file included with this project.
+ */
+
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const discord_js_1 = require("discord.js");
+const keyv_1 = __importDefault(require("../../db/keyv"));
+const logger_1 = require("../../util/logger");
+const timestring_1 = __importDefault(require("timestring"));
+exports.default = {
+    data: new discord_js_1.SlashCommandBuilder()
+        .setName("mute")
+        .setDescription("Mute a user from the server")
+        .setDefaultMemberPermissions(discord_js_1.PermissionsBitField.Flags.BanMembers)
+        .addUserOption(option => option.setName('user').setDescription('The user to kick').setRequired(true))
+        .addStringOption(option => option.setName('duration').setDescription('The duration of the mute').setRequired(true))
+        .addStringOption(option => option.setName('reason').setDescription('The reason for the kick').setRequired(false)),
+    async handle(client, interaction) {
+        const options = interaction.options;
+        const userId = options.getUser('user').id;
+        const user = await interaction.guild.members.fetch(userId);
+        const reason = options.getString('reason') || 'No reason provided';
+        const duration = options.getString('duration') || '1d';
+        try {
+            let date = (0, timestring_1.default)(duration);
+            if (isNaN(date)) {
+                throw new Error('Invalid duration');
+            }
+            user.timeout(date * 1000, reason);
+            const embed = new discord_js_1.EmbedBuilder()
+                .setDescription(`\`✅\` <@${interaction.user.id}>, <@${userId}> has been muted for \`${duration}\``)
+                .setColor('Green')
+                .setTimestamp();
+            await interaction.reply({ embeds: [embed] });
+        }
+        catch {
+            const embed = new discord_js_1.EmbedBuilder()
+                .setDescription(`\`❌\` <@${interaction.user.id}>, I cannot mute <@${userId}>`)
+                .setColor('Red')
+                .setTimestamp();
+            await interaction.reply({ embeds: [embed] });
+        }
+        const db = (0, keyv_1.default)();
+        const logChannel = await db.get(`config:${interaction.guildId}`);
+        if (!logChannel) {
+            return (0, logger_1.fatal)(`User <@${userId}> has been muted by <@${interaction.user.id}>. No logs channel found.`);
+        }
+        const channel = logChannel ? interaction.guild?.channels.cache.get(logChannel.logChannel) : null;
+        if (!channel || !channel.isTextBased() || !channel.isSendable()) {
+            return (0, logger_1.fatal)(`User <@${userId}> has been muted by <@${interaction.user.id}>. Logs channel not found.`);
+        }
+        const logEmbed = new discord_js_1.EmbedBuilder()
+            .setTitle('User Muted')
+            .setDescription(`User <@${userId}> has been muted by <@${interaction.user.id}> for \`${reason}\``)
+            .setColor('Green')
+            .setTimestamp();
+        await channel.send({ embeds: [logEmbed] });
+    }
+};
