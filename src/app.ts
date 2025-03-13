@@ -9,13 +9,6 @@ const cmdManager = new CommandManager();
 const eventManager = new EventManager();
 
 (async () => {
-	if (__dirname.includes('dist-out')) {
-		const isValid = await verifyAllFiles(__dirname);
-		if (!isValid) {
-			fatal('Failed to verify all files. Exiting...');
-			process.exit(1);
-		}
-	}
 
     const client = new Client({
         intents: [IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildPresences],
