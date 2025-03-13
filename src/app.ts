@@ -4,7 +4,6 @@ import Command from './types/Command';
 import { Client, Collection, IntentsBitField, Partials } from 'discord.js';
 import CommandManager from './manager/CommandManager';
 import EventManager from './manager/EventManager';
-import { verifyAllFiles } from './util/sig';
 const cmdManager = new CommandManager();
 const eventManager = new EventManager();
 
